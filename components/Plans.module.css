@@ -230,6 +230,22 @@
   transform: translateY(-2px);
 }
 
+.btnDisabled {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.75rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+  padding: 0.85rem 2rem;
+  border-radius: 2px;
+  display: block;
+  text-align: center;
+  opacity: 0.5;
+  cursor: default;
+}
+
 /* ── Bottom note ── */
 .note {
   font-family: 'DM Mono', monospace;

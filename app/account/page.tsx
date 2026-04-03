@@ -88,7 +88,7 @@ export default async function AccountPage() {
         <section className={styles.section}>
           <h2 className={styles.sectionTitle}>Account</h2>
           <div className={styles.actions}>
-            <a href="/api/account-settings" className={styles.btn}>Edit Profile</a>
+            <a href="/api/account-settings" className={styles.btn}>Manage Subscription</a>
             <a href="/auth/logout" className={styles.signOut}>Sign Out</a>
           </div>
         </section>

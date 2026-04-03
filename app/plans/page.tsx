@@ -1,9 +1,11 @@
 import type { Metadata } from 'next'
+import { cookies } from 'next/headers'
 import Plans from '@/components/Plans'
 import Footer from '@/components/Footer'
 import Nav from '@/components/Nav'
 import styles from './plans.module.css'
 import { getAuthState } from '@/lib/auth'
+import { getWixClient } from '@/lib/wix'
 
 export const metadata: Metadata = {
   title: 'Coaching Plans | Levee Breakers',
@@ -20,7 +22,27 @@ export const metadata: Metadata = {
 }
 
 export default async function PlansPage() {
-  const auth = await getAuthState()
+  const [auth, cookieStore] = await Promise.all([getAuthState(), cookies()])
+  const wixClient = getWixClient({ get: (name) => cookieStore.get(name)?.value })
+
+  const activePlanKeys: string[] = []
+  if (wixClient.auth.loggedIn()) {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { orders: memberOrders } = await wixClient.orders.memberListOrders()
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const activeOrders = ((memberOrders ?? []) as any[]).filter((o) => o.status === 'ACTIVE')
+      const monthlyId = process.env.NEXT_PUBLIC_WIX_PLAN_MONTHLY
+      const consultationId = process.env.NEXT_PUBLIC_WIX_PLAN_CONSULTATION
+      for (const order of activeOrders) {
+        if (monthlyId && order.planId === monthlyId) activePlanKeys.push('monthly')
+        if (consultationId && order.planId === consultationId) activePlanKeys.push('consultation')
+      }
+    } catch {
+      // non-fatal
+    }
+  }
+
   return (
     <div className={styles.page}>
 
@@ -37,7 +59,7 @@ export default async function PlansPage() {
       </header>
 
       {/* ── Plans section (shared component, no top border on this page) ── */}
-      <Plans />
+      <Plans activePlanKeys={activePlanKeys} />
 
       <Footer />
     </div>

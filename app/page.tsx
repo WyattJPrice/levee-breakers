@@ -6,6 +6,8 @@ import Plans from '@/components/Plans'
 import LeveeBreakers from '@/components/LeveeBreakers'
 import Footer from '@/components/Footer'
 import { getAuthState } from '@/lib/auth'
+import { getWixClient } from '@/lib/wix'
+import { cookies } from 'next/headers'
 
 const STATS = [
   { val: '1:49.3', label: '800m (2015)' },
@@ -19,7 +21,27 @@ const STATS = [
 ]
 
 export default async function Home() {
-  const auth = await getAuthState()
+  const [auth, cookieStore] = await Promise.all([getAuthState(), cookies()])
+  const wixClient = getWixClient({ get: (name) => cookieStore.get(name)?.value })
+
+  const activePlanKeys: string[] = []
+  if (wixClient.auth.loggedIn()) {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { orders: memberOrders } = await wixClient.orders.memberListOrders()
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const activeOrders = ((memberOrders ?? []) as any[]).filter((o) => o.status === 'ACTIVE')
+      const monthlyId = process.env.NEXT_PUBLIC_WIX_PLAN_MONTHLY
+      const consultationId = process.env.NEXT_PUBLIC_WIX_PLAN_CONSULTATION
+      for (const order of activeOrders) {
+        if (monthlyId && order.planId === monthlyId) activePlanKeys.push('monthly')
+        if (consultationId && order.planId === consultationId) activePlanKeys.push('consultation')
+      }
+    } catch {
+      // non-fatal
+    }
+  }
+
   return (
     <>
       <div className={styles.bgWrap}>
@@ -68,7 +90,7 @@ export default async function Home() {
 
         <MeetTheCoach />
         <LeveeBreakers /> 
-        <Plans />
+        <Plans activePlanKeys={activePlanKeys} />
 
         <Footer />
       </div>

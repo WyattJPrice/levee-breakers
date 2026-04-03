@@ -10,6 +10,7 @@ const PHILOSOPHY = [
 
 const PLANS = [
   {
+    key: 'monthly',
     tag: 'Monthly Levee Breaker',
     price: '$120',
     per: '/ month',
@@ -26,6 +27,7 @@ const PLANS = [
     accent: true,
   },
   {
+    key: 'consultation',
     tag: '1 hour consultation',
     price: '$60',
     per: 'One Time',
@@ -42,7 +44,7 @@ const PLANS = [
   },
 ]
 
-export default function Plans() {
+export default function Plans({ activePlanKeys = [] }: { activePlanKeys?: string[] }) {
   return (
     <section id="plans" className={styles.section}>
       <div className={styles.inner}>
@@ -63,33 +65,40 @@ export default function Plans() {
 
         {/* ── Plan cards ── */}
         <div className={styles.cards}>
-          {PLANS.map((plan) => (
-            <div
-              key={plan.tag}
-              className={`${styles.card} ${plan.accent ? styles.cardAccent : ''}`}
-            >
-              <span className={styles.planTag}>{plan.tag}</span>
-              <div className={styles.priceRow}>
-                <span className={styles.price}>{plan.price}</span>
-                <span className={styles.per}>{plan.per}</span>
-              </div>
-              <p className={styles.planDesc}>{plan.description}</p>
-              <ul className={styles.features}>
-                {plan.features.map((f) => (
-                  <li key={f} className={styles.feature}>
-                    <span className={styles.featureCheck}>✓</span>
-                    {f}
-                  </li>
-                ))}
-              </ul>
-              <a
-                href={plan.href}
-                className={plan.accent ? styles.btnPrimary : styles.btnGhost}
+          {PLANS.map((plan) => {
+            const isActive = activePlanKeys.includes(plan.key)
+            return (
+              <div
+                key={plan.tag}
+                className={`${styles.card} ${plan.accent ? styles.cardAccent : ''}`}
               >
-                {plan.cta}
-              </a>
-            </div>
-          ))}
+                <span className={styles.planTag}>{plan.tag}</span>
+                <div className={styles.priceRow}>
+                  <span className={styles.price}>{plan.price}</span>
+                  <span className={styles.per}>{plan.per}</span>
+                </div>
+                <p className={styles.planDesc}>{plan.description}</p>
+                <ul className={styles.features}>
+                  {plan.features.map((f) => (
+                    <li key={f} className={styles.feature}>
+                      <span className={styles.featureCheck}>✓</span>
+                      {f}
+                    </li>
+                  ))}
+                </ul>
+                {isActive ? (
+                  <span className={styles.btnDisabled}>Current Plan</span>
+                ) : (
+                  <a
+                    href={plan.href}
+                    className={plan.accent ? styles.btnPrimary : styles.btnGhost}
+                  >
+                    {plan.cta}
+                  </a>
+                )}
+              </div>
+            )
+          })}
         </div>
 
 
