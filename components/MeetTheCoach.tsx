@@ -18,7 +18,7 @@ const SLIDES = [
   { src: '/LousianaHalf.png', alt: '2023 Louisiana Half Marathon' },
   { src: '/Sub4.png', alt: 'Sub Four 2015' },
   { src: '/zydeco2026.jpg', alt: 'Zydeco Marathon 2026' },
-  { src: '/zydeco2024.jpg', alt: 'Zydeco Marathon 2024' },
+  { src: '/Zydeco2024.jpg', alt: 'Zydeco Marathon 2024' },
 ]
 
 export default function MeetTheCoach() {
