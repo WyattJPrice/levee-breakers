@@ -7,7 +7,7 @@ export const WIX_TOKEN_COOKIE = 'wix-tokens'
 export const WIX_OAUTH_COOKIE = 'wix-oauth'
 
 export const REDIRECT_URI =
-  `${process.env.NEXT_PUBLIC_BASE_URL ?? 'http://localhost:3000'}/auth/callback`
+  `${process.env.NEXT_PUBLIC_BASE_URL ?? 'https://levee.wyattprice.dev'}/auth/callback`
 
 export type WixTokens = {
   accessToken: { value: string; expiresAt: number }
