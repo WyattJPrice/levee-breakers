@@ -1,0 +1,71 @@
+.wrapper {
+  position: relative;
+}
+
+.trigger {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 0;
+  transition: color 0.2s, border-color 0.2s;
+}
+
+.trigger:hover {
+  color: var(--accent);
+  border-color: rgba(79, 195, 247, 0.4);
+}
+
+.photo {
+  width: 28px;
+  height: 28px;
+  border-radius: 1px;
+  object-fit: cover;
+}
+
+.dropdown {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: 0;
+  min-width: 160px;
+  background: var(--nav-bg);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  overflow: hidden;
+  z-index: 200;
+}
+
+.memberName {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.6rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent);
+  padding: 0.6rem 1rem 0.4rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.item {
+  display: block;
+  font-family: 'DM Mono', monospace;
+  font-size: 0.68rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  text-decoration: none;
+  padding: 0.7rem 1rem;
+  transition: color 0.15s, background 0.15s;
+}
+
+.item:hover {
+  color: var(--accent);
+  background: rgba(79, 195, 247, 0.06);
+}

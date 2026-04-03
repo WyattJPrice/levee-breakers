@@ -1,0 +1,58 @@
+.page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+}
+
+
+/* ── Page header ── */
+.header {
+  padding: 6rem 10vw 4rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.headerTag {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.68rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--accent);
+  border: 1px solid var(--tag-border);
+  background: var(--tag-bg);
+  padding: 0.3rem 0.75rem;
+  border-radius: 2px;
+  display: inline-block;
+  margin-bottom: 1.6rem;
+}
+
+.headerTitle {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(3.5rem, 8vw, 7rem);
+  line-height: 0.92;
+  letter-spacing: 0.04em;
+  color: var(--text-primary);
+  margin-bottom: 1.5rem;
+}
+
+.accent {
+  color: var(--accent);
+  text-shadow: 0 0 40px var(--accent-glow);
+}
+
+.headerSub {
+  font-family: 'Syne', sans-serif;
+  font-size: 1.05rem;
+  line-height: 1.65;
+  color: var(--text-secondary);
+  max-width: 520px;
+}
+
+/* ── Responsive ── */
+@media (max-width: 600px) {
+  .header {
+    padding: 4rem 1.5rem 2rem;
+  }
+}
