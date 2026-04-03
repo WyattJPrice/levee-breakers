@@ -57,3 +57,9 @@ const STATS = [
   { val: '5:52',  label: 'Mile PR' },
 ]
 ```
+
+
+## To switch
+Change env in vercel
+Change url to https://leveebreakers.com
+
