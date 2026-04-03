@@ -62,12 +62,12 @@ export default function NavProfile({ isLoggedIn, memberName, memberPhoto }: NavP
             </>
           ) : (
             <>
-              <button className={styles.item} onClick={navigateToLogin}>
+              <a href="/auth/login" className={styles.item} onClick={(e) => { e.preventDefault(); navigateToLogin() }}>
                 Sign In
-              </button>
-              <button className={styles.item} onClick={navigateToLogin}>
+              </a>
+              <a href="/auth/login" className={styles.item} onClick={(e) => { e.preventDefault(); navigateToLogin() }}>
                 Create Account
-              </button>
+              </a>
             </>
           )}
         </div>

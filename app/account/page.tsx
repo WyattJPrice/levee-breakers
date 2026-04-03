@@ -22,6 +22,14 @@ export default async function AccountPage() {
     redirect('/auth/login')
   }
 
+  let activeOrders: any[] = []
+  try {
+    const { orders: memberOrders } = await wixClient.orders.memberListOrders()
+    activeOrders = (memberOrders ?? []).filter((o: any) => o.status === 'ACTIVE')
+  } catch {
+    // non-fatal — account page still renders without plan info
+  }
+
   const auth = await getAuthState()
   const displayName = member?.profile?.nickname ?? member?.loginEmail ?? 'Athlete'
   const photo = member?.profile?.photo?.url ?? null
@@ -55,15 +63,32 @@ export default async function AccountPage() {
 
         <section className={styles.section}>
           <h2 className={styles.sectionTitle}>Active Plan</h2>
-          <div className={styles.planCard}>
-            <p className={styles.noPlan}>No active plan</p>
-            <a href="/plans" className={styles.btn}>Browse Plans</a>
-          </div>
+          {activeOrders.length > 0 ? activeOrders.map((order: any) => (
+            <div key={order._id} className={styles.planCard}>
+              <div>
+                <p className={styles.noPlan} style={{ color: 'var(--text-primary)' }}>{order.planName}</p>
+                {order.endDate && (
+                  <p className={styles.noPlan} style={{ fontSize: '0.62rem', marginTop: '0.25rem' }}>
+                    Renews {new Date(order.endDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+                  </p>
+                )}
+              </div>
+              <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '0.62rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--accent)' }}>
+                {order.status}
+              </span>
+            </div>
+          )) : (
+            <div className={styles.planCard}>
+              <p className={styles.noPlan}>No active plan</p>
+              <a href="/plans" className={styles.btn}>Browse Plans</a>
+            </div>
+          )}
         </section>
 
         <section className={styles.section}>
           <h2 className={styles.sectionTitle}>Account</h2>
           <div className={styles.actions}>
+            <a href="/api/account-settings" className={styles.btn}>Edit Profile</a>
             <a href="/auth/logout" className={styles.signOut}>Sign Out</a>
           </div>
         </section>
