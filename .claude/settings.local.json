@@ -2,7 +2,11 @@
   "permissions": {
     "allow": [
       "WebFetch(domain:svglogos.dev)",
-      "Bash(npm run:*)"
+      "Bash(npm run:*)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:api.github.com)",
+      "Bash(gh api:*)"
     ]
   }
 }

@@ -1,26 +1,30 @@
 import { createClient, OAuthStrategy } from '@wix/sdk'
 import { members } from '@wix/members'
-import { orders } from '@wix/pricing-plans'
+import { orders, plans } from '@wix/pricing-plans'
 import { redirects } from '@wix/redirects'
+import { PHASE_PRODUCTION_BUILD } from 'next/constants'
 
-export const WIX_TOKEN_COOKIE = 'wix-tokens'
+export const WIX_REFRESH_TOKEN_COOKIE = 'wix_refreshToken'
 export const WIX_OAUTH_COOKIE = 'wix-oauth'
 
-export const REDIRECT_URI =
-  `${process.env.NEXT_PUBLIC_BASE_URL ?? 'https://levee.wyattprice.dev'}/auth/callback`
+export type CookieGetter = { get(name: string): string | undefined }
 
-export type WixTokens = {
-  accessToken: { value: string; expiresAt: number }
-  refreshToken: { value: string; role: string }
-}
+const getRefreshToken = (cookieStore: CookieGetter) =>
+  process.env.NEXT_PHASE !== PHASE_PRODUCTION_BUILD
+    ? JSON.parse(cookieStore.get(WIX_REFRESH_TOKEN_COOKIE) || '{}')
+    : {}
 
-export function getWixClient(tokens?: WixTokens | null) {
+export function getWixClient(cookieStore: CookieGetter) {
   return createClient({
-    modules: { members, orders, redirects },
+    modules: { members, orders, plans, redirects },
     auth: OAuthStrategy({
       clientId: process.env.NEXT_PUBLIC_WIX_CLIENT_ID!,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      tokens: (tokens ?? undefined) as any,
+      tokens: {
+        refreshToken: getRefreshToken(cookieStore),
+        accessToken: { value: '', expiresAt: 0 },
+      },
     }),
   })
 }
+
+export type WixClient = ReturnType<typeof getWixClient>

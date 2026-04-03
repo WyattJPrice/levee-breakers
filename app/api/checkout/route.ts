@@ -1,35 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { cookies } from 'next/headers'
-import { getWixClient, WIX_TOKEN_COOKIE, WixTokens } from '@/lib/wix'
+import { getWixClient } from '@/lib/wix'
 
-export async function POST(req: NextRequest) {
-  const { planId } = await req.json()
+export async function GET(req: NextRequest) {
+  const planId = req.nextUrl.searchParams.get('planId')
+  if (!planId) return NextResponse.redirect(new URL('/plans', req.url))
 
-  if (!planId) {
-    return NextResponse.json({ error: 'missing_plan_id' }, { status: 400 })
-  }
-
-  const cookieStore = await cookies()
-  const tokensCookie = cookieStore.get(WIX_TOKEN_COOKIE)
-
-  if (!tokensCookie) {
-    return NextResponse.json({ error: 'not_authenticated' }, { status: 401 })
-  }
+  const wixClient = getWixClient({ get: (name) => req.cookies.get(name)?.value })
 
   try {
-    const tokens = JSON.parse(tokensCookie.value) as WixTokens
-    const client = getWixClient(tokens)
-
-    const session = await client.redirects.createRedirectSession({
+    const { redirectSession } = await wixClient.redirects.createRedirectSession({
       paidPlansCheckout: { planId },
       callbacks: {
-        postFlowUrl: `${process.env.NEXT_PUBLIC_BASE_URL}/account`,
+        postFlowUrl: new URL('/account', req.url).toString(),
+        planListUrl: new URL('/plans', req.url).toString(),
       },
     })
-
-    return NextResponse.json({ checkoutUrl: session.redirectSession?.fullUrl })
+    return NextResponse.redirect(redirectSession?.fullUrl ?? new URL('/plans', req.url).toString())
   } catch (err) {
-    console.error('Wix checkout error:', err)
-    return NextResponse.json({ error: 'checkout_failed' }, { status: 500 })
+    console.error('Checkout error:', err)
+    return NextResponse.redirect(new URL('/plans', req.url))
   }
 }

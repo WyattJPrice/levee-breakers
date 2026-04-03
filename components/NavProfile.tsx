@@ -23,6 +23,12 @@ export default function NavProfile({ isLoggedIn, memberName, memberPhoto }: NavP
     return () => document.removeEventListener('mousedown', handleClick)
   }, [])
 
+  function navigateToLogin() {
+    const url = new URL('/auth/login', window.location.origin)
+    url.searchParams.set('returnToUrl', window.location.href)
+    window.location.href = url.toString()
+  }
+
   return (
     <div className={styles.wrapper} ref={ref}>
       <button
@@ -56,12 +62,12 @@ export default function NavProfile({ isLoggedIn, memberName, memberPhoto }: NavP
             </>
           ) : (
             <>
-              <a href="/auth/login" className={styles.item}>
+              <button className={styles.item} onClick={navigateToLogin}>
                 Sign In
-              </a>
-              <a href="/auth/login" className={styles.item}>
+              </button>
+              <button className={styles.item} onClick={navigateToLogin}>
                 Create Account
-              </a>
+              </button>
             </>
           )}
         </div>

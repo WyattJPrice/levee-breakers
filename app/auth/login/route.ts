@@ -1,22 +1,23 @@
-import { NextResponse } from 'next/server'
-import { cookies } from 'next/headers'
-import { getWixClient, WIX_OAUTH_COOKIE, REDIRECT_URI } from '@/lib/wix'
+import { NextRequest, NextResponse } from 'next/server'
+import { getWixClient, WIX_OAUTH_COOKIE } from '@/lib/wix'
 
-export async function GET() {
-  const client = getWixClient()
+export async function GET(req: NextRequest) {
+  const returnToUrl = req.nextUrl.searchParams.get('returnToUrl') ?? req.nextUrl.origin
 
-  // Generate OAuth state (PKCE + state param) and store temporarily
-  const oauthData = client.auth.generateOAuthData(REDIRECT_URI, '/')
-  const { authUrl } = await client.auth.getAuthUrl(oauthData)
+  const wixClient = getWixClient({ get: () => undefined })
+  const callbackUrl = new URL('/auth/callback', req.url).toString()
+  const oauthData = wixClient.auth.generateOAuthData(callbackUrl, returnToUrl)
 
-  const cookieStore = await cookies()
-  cookieStore.set(WIX_OAUTH_COOKIE, JSON.stringify(oauthData), {
+  const { authUrl } = await wixClient.auth.getAuthUrl(oauthData, {
+    responseMode: 'query',
+  })
+
+  const response = NextResponse.redirect(authUrl)
+  response.cookies.set(WIX_OAUTH_COOKIE, JSON.stringify(oauthData), {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    maxAge: 60 * 10, // 10 minutes
+    maxAge: 60 * 30,
     path: '/',
   })
 
-  return NextResponse.redirect(authUrl)
+  return response
 }

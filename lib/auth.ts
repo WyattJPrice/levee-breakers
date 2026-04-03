@@ -1,5 +1,5 @@
 import { cookies } from 'next/headers'
-import { getWixClient, WIX_TOKEN_COOKIE, WixTokens } from './wix'
+import { getWixClient } from './wix'
 
 export type AuthState = {
   isLoggedIn: boolean
@@ -9,22 +9,19 @@ export type AuthState = {
 
 export async function getAuthState(): Promise<AuthState> {
   const cookieStore = await cookies()
-  const tokensCookie = cookieStore.get(WIX_TOKEN_COOKIE)
+  const wixClient = getWixClient({ get: (name) => cookieStore.get(name)?.value })
 
-  if (!tokensCookie) {
-    return { isLoggedIn: false, memberName: null, memberPhoto: null }
-  }
+  const isLoggedIn = wixClient.auth.loggedIn()
+  if (!isLoggedIn) return { isLoggedIn: false, memberName: null, memberPhoto: null }
 
   try {
-    const tokens = JSON.parse(tokensCookie.value) as WixTokens
-    const client = getWixClient(tokens)
-    const { member } = await client.members.getCurrentMember({ fieldsets: ['FULL'] })
+    const { member } = await wixClient.members.getCurrentMember({ fieldsets: ['FULL'] })
     return {
       isLoggedIn: true,
       memberName: member?.profile?.nickname ?? member?.loginEmail ?? null,
       memberPhoto: member?.profile?.photo?.url ?? null,
     }
   } catch {
-    return { isLoggedIn: false, memberName: null, memberPhoto: null }
+    return { isLoggedIn: true, memberName: null, memberPhoto: null }
   }
 }

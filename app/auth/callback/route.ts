@@ -1,38 +1,34 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { cookies } from 'next/headers'
-import { getWixClient, WIX_TOKEN_COOKIE, WIX_OAUTH_COOKIE } from '@/lib/wix'
+import { getWixClient, WIX_OAUTH_COOKIE, WIX_REFRESH_TOKEN_COOKIE } from '@/lib/wix'
+import type { OauthData } from '@wix/sdk'
 
 export async function GET(req: NextRequest) {
-  const { searchParams } = req.nextUrl
-  const code = searchParams.get('code')
-  const state = searchParams.get('state')
+  const oauthCookie = req.cookies.get(WIX_OAUTH_COOKIE)
+  const oauthData: OauthData = JSON.parse(oauthCookie?.value ?? '{}')
+  const returnTo = oauthData.originalUri ?? req.nextUrl.origin
 
-  const cookieStore = await cookies()
-  const oauthCookie = cookieStore.get(WIX_OAUTH_COOKIE)
-
-  if (!code || !state || !oauthCookie) {
-    return NextResponse.redirect(new URL('/', req.url))
+  if (req.nextUrl.search.includes('error=')) {
+    return NextResponse.redirect(returnTo)
   }
 
-  const oauthData = JSON.parse(oauthCookie.value)
-  const client = getWixClient()
+  const wixClient = getWixClient({ get: () => undefined })
+  const { state, code } = wixClient.auth.parseFromUrl(req.url, 'query')
 
   try {
-    const tokens = await client.auth.getMemberTokens(code, state, oauthData)
+    const memberTokens = await wixClient.auth.getMemberTokens(code, state, oauthData)
 
-    cookieStore.set(WIX_TOKEN_COOKIE, JSON.stringify(tokens), {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 60 * 60 * 24 * 14, // 14 days
+    const response = NextResponse.redirect(returnTo)
+    response.cookies.delete(WIX_OAUTH_COOKIE)
+    response.cookies.set({
+      name: WIX_REFRESH_TOKEN_COOKIE,
+      value: JSON.stringify(memberTokens.refreshToken),
+      maxAge: 60 * 60 * 24 * 14,
       path: '/',
     })
+    return response
   } catch {
-    // Auth failed — send back to home without setting tokens
-    cookieStore.delete(WIX_OAUTH_COOKIE)
-    return NextResponse.redirect(new URL('/', req.url))
+    const response = NextResponse.redirect(returnTo)
+    response.cookies.delete(WIX_OAUTH_COOKIE)
+    return response
   }
-
-  cookieStore.delete(WIX_OAUTH_COOKIE)
-  return NextResponse.redirect(new URL('/account', req.url))
 }

@@ -1,24 +1,22 @@
-import { redirect } from 'next/navigation'
 import { cookies } from 'next/headers'
+import { redirect } from 'next/navigation'
 import Nav from '@/components/Nav'
 import Footer from '@/components/Footer'
-import { getWixClient, WIX_TOKEN_COOKIE, WixTokens } from '@/lib/wix'
+import { getWixClient } from '@/lib/wix'
 import { getAuthState } from '@/lib/auth'
 import styles from './account.module.css'
 
 export default async function AccountPage() {
   const cookieStore = await cookies()
-  const tokensCookie = cookieStore.get(WIX_TOKEN_COOKIE)
+  const wixClient = getWixClient({ get: (name) => cookieStore.get(name)?.value })
 
-  if (!tokensCookie) {
+  if (!wixClient.auth.loggedIn()) {
     redirect('/auth/login')
   }
 
   let member: any = null
   try {
-    const tokens = JSON.parse(tokensCookie.value) as WixTokens
-    const client = getWixClient(tokens)
-    const result = await client.members.getCurrentMember({ fieldsets: ['FULL'] })
+    const result = await wixClient.members.getCurrentMember({ fieldsets: ['FULL'] })
     member = result.member
   } catch {
     redirect('/auth/login')
@@ -58,7 +56,6 @@ export default async function AccountPage() {
         <section className={styles.section}>
           <h2 className={styles.sectionTitle}>Active Plan</h2>
           <div className={styles.planCard}>
-            {/* TODO: replace with real plan from @wix/pricing-plans orders.listCurrentMemberOrders() */}
             <p className={styles.noPlan}>No active plan</p>
             <a href="/plans" className={styles.btn}>Browse Plans</a>
           </div>

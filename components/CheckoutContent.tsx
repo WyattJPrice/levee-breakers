@@ -49,35 +49,13 @@ export default function CheckoutContent() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  async function handleCheckout() {
-    setLoading(true)
-    setError(null)
-
-    try {
-      const res = await fetch('/api/checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ planId: plan.planId }),
-      })
-
-      const data = await res.json()
-
-      if (res.status === 401) {
-        window.location.href = '/auth/login'
-        return
-      }
-
-      if (!res.ok || !data.checkoutUrl) {
-        setError('Something went wrong. Please try again.')
-        return
-      }
-
-      window.location.href = data.checkoutUrl
-    } catch {
-      setError('Something went wrong. Please try again.')
-    } finally {
-      setLoading(false)
+  function handleCheckout() {
+    if (!plan.planId) {
+      setError('Plan not configured. Please contact support.')
+      return
     }
+    setLoading(true)
+    window.location.href = `/api/checkout?planId=${encodeURIComponent(plan.planId)}`
   }
 
   return (
