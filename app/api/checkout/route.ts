@@ -20,9 +20,14 @@ export async function POST(req: NextRequest) {
     const tokens = JSON.parse(tokensCookie.value) as WixTokens
     const client = getWixClient(tokens)
 
-    const order = await client.orders.createOnlineOrder(planId)
+    const session = await client.redirects.createRedirectSession({
+      paidPlansCheckout: { planId },
+      callbacks: {
+        postFlowUrl: `${process.env.NEXT_PUBLIC_BASE_URL}/account`,
+      },
+    })
 
-    return NextResponse.json({ checkoutUrl: order.checkoutUrl })
+    return NextResponse.json({ checkoutUrl: session.redirectSession?.fullUrl })
   } catch (err) {
     console.error('Wix checkout error:', err)
     return NextResponse.json({ error: 'checkout_failed' }, { status: 500 })

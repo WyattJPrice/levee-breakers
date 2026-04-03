@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "WebFetch(domain:svglogos.dev)"
+      "WebFetch(domain:svglogos.dev)",
+      "Bash(npm run:*)"
     ]
   }
 }
