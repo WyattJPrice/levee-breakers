@@ -20,10 +20,7 @@ export async function POST(req: NextRequest) {
     const tokens = JSON.parse(tokensCookie.value) as WixTokens
     const client = getWixClient(tokens)
 
-    const order = await client.orders.createOnlineOrder({
-      planId,
-      startDate: new Date(),
-    })
+    const order = await client.orders.createOnlineOrder(planId)
 
     return NextResponse.json({ checkoutUrl: order.checkoutUrl })
   } catch (err) {
