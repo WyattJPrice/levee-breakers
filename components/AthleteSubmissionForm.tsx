@@ -3,13 +3,15 @@
 import { useState, useRef } from 'react'
 import styles from './AthleteSubmissionForm.module.css'
 
-export default function AthleteSubmissionForm() {
+export default function AthleteSubmissionForm({ hasSubmitted = false }: { hasSubmitted?: boolean }) {
   const [open, setOpen] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [fileName, setFileName] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  if (hasSubmitted) return null
 
   if (success) {
     return (

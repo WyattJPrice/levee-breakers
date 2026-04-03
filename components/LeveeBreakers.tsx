@@ -17,80 +17,7 @@ type Breaker = {
 }
 
 const BREAKERS: Breaker[] = [
-    {
-        name: 'Ben Hetzel',
-        duration: 'Levee Breaker · 13 months',
-        description:
-            'He simplified my training and forced some slower running. PRs came almost every race. Just when I think I plateau, I keep gaining fitness!',
-        image: '/Athletes/Ben.png',
-        socials: [
-            { platform: 'instagram', url: 'https://instagram.com' },
-            { platform: 'strava', url: 'https://strava.com' },
-        ],
-    },
-    {
-        name: 'Athlete Two',
-        duration: 'Levee Breaker · 6 months',
-        description:
-            'Placeholder — swap in a real testimonial here.',
-        socials: [
-            { platform: 'instagram', url: 'https://instagram.com' },
-        ],
-    },
-    {
-        name: 'Athlete Three',
-        duration: 'Levee Breaker · 6 months',
-        description:
-            'Placeholder — swap in a real testimonial here.',
-        socials: [
-            { platform: 'instagram', url: 'https://instagram.com' },
-        ],
-    },
-    {
-        name: 'Athlete Four',
-        duration: 'Levee Breaker · 6 months',
-        description:
-            'Placeholder — swap in a real testimonial here.',
-        socials: [
-            { platform: 'instagram', url: 'https://instagram.com' },
-        ],
-    },
-    {
-        name: 'Athlete Five',
-        duration: 'Levee Breaker · 6 months',
-        description:
-            'Placeholder — swap in a real testimonial here.',
-        socials: [
-            { platform: 'instagram', url: 'https://instagram.com' },
-        ],
-    },
-    {
-        name: 'Athlete Six',
-        duration: 'Levee Breaker · 6 months',
-        description:
-            'Placeholder — swap in a real testimonial here.',
-        socials: [
-            { platform: 'instagram', url: 'https://instagram.com' },
-        ],
-    },
-    {
-        name: 'Athlete Seven',
-        duration: 'Levee Breaker · 6 months',
-        description:
-            'Placeholder — swap in a real testimonial here.',
-        socials: [
-            { platform: 'instagram', url: 'https://instagram.com' },
-        ],
-    },
-    {
-        name: 'Athlete Eight',
-        duration: 'Levee Breaker · 6 months',
-        description:
-            'Placeholder — swap in a real testimonial here.',
-        socials: [
-            { platform: 'instagram', url: 'https://instagram.com' },
-        ],
-    },
+
 ]
 
 function InstagramIcon() {
@@ -126,6 +53,12 @@ function TwitterIcon() {
     )
 }
 
+function calcMonths(initialMonths: number, createdAt: string): number {
+    const msPerMonth = 1000 * 60 * 60 * 24 * 30.4375
+    const elapsed = Math.floor((Date.now() - new Date(createdAt).getTime()) / msPerMonth)
+    return initialMonths + Math.max(0, elapsed)
+}
+
 function SocialIcon({ platform }: { platform: Social['platform'] }) {
     if (platform === 'instagram') return <InstagramIcon />
     if (platform === 'strava') return <StravaIcon />
@@ -137,9 +70,11 @@ function SocialIcon({ platform }: { platform: Social['platform'] }) {
 export default function LeveeBreakers({
     cmsProfiles = [],
     isMonthlyMember = false,
+    hasSubmitted = false,
 }: {
     cmsProfiles?: AthleteProfile[]
     isMonthlyMember?: boolean
+    hasSubmitted?: boolean
 }) {
     return (
         <section className={styles.section}>
@@ -152,7 +87,7 @@ export default function LeveeBreakers({
                     </h2>
                 </div>
 
-                {isMonthlyMember && <AthleteSubmissionForm />}
+                {isMonthlyMember && <AthleteSubmissionForm hasSubmitted={hasSubmitted} />}
 
                 <div className={styles.track}>
                     {cmsProfiles.map((profile) => {
@@ -187,7 +122,7 @@ export default function LeveeBreakers({
                                         <div>
                                             <div className={styles.name}>{profile.name}</div>
                                             <div className={styles.duration}>
-                                                Levee Breaker · {profile.months} {profile.months === 1 ? 'month' : 'months'}
+                                                {(() => { const m = calcMonths(profile.months, profile.created_at); return `Levee Breaker · ${m} ${m === 1 ? 'month' : 'months'}` })()}
                                             </div>
                                         </div>
                                         {socials.length > 0 && (
@@ -236,7 +171,6 @@ export default function LeveeBreakers({
                             </div>
 
                             <div className={styles.cardBody}>
-
                                 <div className={styles.cardHeader}>
                                     <div>
                                         <div className={styles.name}>{breaker.name}</div>
@@ -257,11 +191,9 @@ export default function LeveeBreakers({
                                         ))}
                                     </div>
                                 </div>
-
                                 <p className={styles.quote}>
                                     &ldquo;{breaker.description}&rdquo;
                                 </p>
-
                             </div>
                         </div>
                     ))}
