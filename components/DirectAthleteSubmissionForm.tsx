@@ -79,7 +79,7 @@ export default function DirectAthleteSubmissionForm() {
           id="dsf-testimonial"
           name="testimonial"
           className={styles.textarea}
-          placeholder="What has Jarrett's coaching meant to you?"
+          placeholder="What has being a Levee Breaker meant to you?"
           required
           maxLength={300}
         />

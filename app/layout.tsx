@@ -15,7 +15,7 @@ export const metadata: Metadata = {
     siteName: 'Levee Breakers',
     images: [
       {
-        url: 'https://leveebreakers.com/og.jpg',  // 1200×630 image in /public
+        url: 'https://levee.wyattprice.dev//og.jpg',  // 1200×630 image in /public
         width: 1200,
         height: 630,
         alt: 'Levee Breakers',
@@ -27,7 +27,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'Levee Breakers',
     description: 'Proven coaching and custom training for all ages and abilities. 1 mile to marathon.',
-    images: ['https://leveebreakers.com/og.jpg'],
+    images: ['https://levee.wyattprice.dev//og.jpg'],
   },
 }
 
