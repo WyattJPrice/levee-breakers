@@ -1,11 +1,14 @@
 import styles from './Footer.module.css'
 
+const COACH_EMAIL = 'runner430mile@aol.com'
+
 export default function Footer() {
   return (
     <footer id="contact" className={styles.footer}>
       <div className={styles.contact}>
         <div className={styles.name}>Jarrett LeBlanc</div>
         <div className={styles.sub}>Running Coach · Hathaway, LA</div>
+        <a href={`mailto:${COACH_EMAIL}`} className={styles.email}>{COACH_EMAIL}</a>
         <div className={styles.socials}>
           <a href="https://www.instagram.com/jarrettleblanc08/" target="_blank" rel="noopener noreferrer" aria-label="Instagram" className={styles.socialLink}>
             <svg width="18" height="18" viewBox="0 0 256 256" fill="currentColor">

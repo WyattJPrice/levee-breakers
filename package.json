@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.101.1",
     "@wix/members": "^1.0.436",
     "@wix/pricing-plans": "^1.0.298",
     "@wix/redirects": "^1.0.112",

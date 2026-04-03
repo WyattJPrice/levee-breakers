@@ -1,7 +1,7 @@
-'use client'
-
 import Image from 'next/image'
 import styles from './LeveeBreakers.module.css'
+import AthleteSubmissionForm from './AthleteSubmissionForm'
+import type { AthleteProfile } from '@/lib/supabase'
 
 type Social = {
     platform: 'instagram' | 'strava' | 'facebook' | 'twitter'
@@ -134,7 +134,13 @@ function SocialIcon({ platform }: { platform: Social['platform'] }) {
     return null
 }
 
-export default function LeveeBreakers() {
+export default function LeveeBreakers({
+    cmsProfiles = [],
+    isMonthlyMember = false,
+}: {
+    cmsProfiles?: AthleteProfile[]
+    isMonthlyMember?: boolean
+}) {
     return (
         <section className={styles.section}>
             <div className={styles.inner}>
@@ -146,7 +152,67 @@ export default function LeveeBreakers() {
                     </h2>
                 </div>
 
+                {isMonthlyMember && <AthleteSubmissionForm />}
+
                 <div className={styles.track}>
+                    {cmsProfiles.map((profile) => {
+                        const socials: Social[] = []
+                        if (profile.instagram_url) socials.push({ platform: 'instagram', url: profile.instagram_url })
+                        if (profile.strava_url) socials.push({ platform: 'strava', url: profile.strava_url })
+                        if (profile.facebook_url) socials.push({ platform: 'facebook', url: profile.facebook_url })
+                        if (profile.twitter_url) socials.push({ platform: 'twitter', url: profile.twitter_url })
+
+                        return (
+                            <div key={profile.id} className={styles.card}>
+                                <div className={styles.cardImage}>
+                                    {profile.photo_url ? (
+                                        // eslint-disable-next-line @next/next/no-img-element
+                                        <img
+                                            src={profile.photo_url}
+                                            alt={profile.name}
+                                            className={styles.cardImg}
+                                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                        />
+                                    ) : (
+                                        <div className={styles.cardImgPlaceholder}>
+                                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" opacity="0.3">
+                                                <circle cx="12" cy="8" r="4" />
+                                                <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
+                                            </svg>
+                                        </div>
+                                    )}
+                                </div>
+                                <div className={styles.cardBody}>
+                                    <div className={styles.cardHeader}>
+                                        <div>
+                                            <div className={styles.name}>{profile.name}</div>
+                                            <div className={styles.duration}>
+                                                Levee Breaker · {profile.months} {profile.months === 1 ? 'month' : 'months'}
+                                            </div>
+                                        </div>
+                                        {socials.length > 0 && (
+                                            <div className={styles.socials}>
+                                                {socials.map((s) => (
+                                                    <a
+                                                        key={s.platform}
+                                                        href={s.url}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className={styles.socialLink}
+                                                        aria-label={s.platform}
+                                                    >
+                                                        <SocialIcon platform={s.platform} />
+                                                    </a>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                    <p className={styles.quote}>&ldquo;{profile.testimonial}&rdquo;</p>
+                                </div>
+                            </div>
+                        )
+                    })}
+
                     {BREAKERS.map((breaker) => (
                         <div key={breaker.name} className={styles.card}>
 

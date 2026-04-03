@@ -6,6 +6,8 @@ import { getWixClient } from '@/lib/wix'
 import { getAuthState } from '@/lib/auth'
 import styles from './account.module.css'
 
+const COACH_EMAIL = 'runner430mile@aol.com'
+
 export default async function AccountPage() {
   const cookieStore = await cookies()
   const wixClient = getWixClient({ get: (name) => cookieStore.get(name)?.value })
@@ -73,9 +75,13 @@ export default async function AccountPage() {
                   </p>
                 )}
               </div>
-              <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '0.62rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--accent)' }}>
-                {order.status}
-              </span>
+              <a
+                href={`mailto:${COACH_EMAIL}?subject=Subscription%20Request&body=Hi%20Jarrett%2C%20I%20would%20like%20to%20make%20a%20change%20to%20my%20${encodeURIComponent(order.planName ?? 'plan')}%20subscription.`}
+                className={styles.signOut}
+                style={{ fontSize: '0.65rem' }}
+              >
+                Cancel / Update Payment
+              </a>
             </div>
           )) : (
             <div className={styles.planCard}>
@@ -88,7 +94,6 @@ export default async function AccountPage() {
         <section className={styles.section}>
           <h2 className={styles.sectionTitle}>Account</h2>
           <div className={styles.actions}>
-            <a href="/api/account-settings" className={styles.btn}>Manage Subscription</a>
             <a href="/auth/logout" className={styles.signOut}>Sign Out</a>
           </div>
         </section>

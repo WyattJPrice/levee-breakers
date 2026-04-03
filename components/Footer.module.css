@@ -35,6 +35,20 @@
   color: var(--accent);
 }
 
+.email {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.65rem;
+  letter-spacing: 0.1em;
+  color: var(--text-secondary);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  transition: color 0.2s;
+}
+
+.email:hover {
+  color: var(--accent);
+}
+
 .socials {
   display: flex;
   gap: 0.6rem;
