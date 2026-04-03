@@ -1,9 +1,15 @@
 import styles from './page.module.css'
 import DirectAthleteSubmissionForm from '@/components/DirectAthleteSubmissionForm'
 import Nav from '@/components/Nav'
+import type { Metadata } from 'next'
 import { getAuthState } from '@/lib/auth'
 
-export const metadata = { robots: 'noindex' }
+export const metadata: Metadata = {
+  robots: 'noindex',
+  alternates: {
+    canonical: 'https://leveebreakers.com/LeveeBreakers',
+  },
+}
 
 export default async function LeveeBreakersSubmit() {
   const auth = await getAuthState()
@@ -16,7 +22,7 @@ export default async function LeveeBreakersSubmit() {
           <p className={styles.eyebrow}>Levee Breakers</p>
           <h1 className={styles.heading}>Share Your Story</h1>
           <p className={styles.sub}>
-            Fill out the form below and Jarrett will review your profile for the site.
+            Fill out the form below and it will be reviewed for the site.
           </p>
         </div>
         <DirectAthleteSubmissionForm />

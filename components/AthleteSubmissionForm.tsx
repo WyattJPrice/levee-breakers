@@ -95,7 +95,7 @@ export default function AthleteSubmissionForm({ hasSubmitted = false }: { hasSub
             id="asf-testimonial"
             name="testimonial"
             className={styles.textarea}
-            placeholder="What has Jarrett's coaching meant to you?"
+            placeholder="What has being a Levee Breaker meant to you?"
             required
             maxLength={300}
           />
