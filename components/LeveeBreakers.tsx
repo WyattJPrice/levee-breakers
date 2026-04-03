@@ -90,7 +90,7 @@ export default function LeveeBreakers({
                 {isMonthlyMember && <AthleteSubmissionForm hasSubmitted={hasSubmitted} />}
 
                 <div className={styles.track}>
-                    {cmsProfiles.map((profile) => {
+                    {[...cmsProfiles].sort((a, b) => calcMonths(b.months, b.created_at) - calcMonths(a.months, a.created_at)).map((profile) => {
                         const socials: Social[] = []
                         if (profile.instagram_url) socials.push({ platform: 'instagram', url: profile.instagram_url })
                         if (profile.strava_url) socials.push({ platform: 'strava', url: profile.strava_url })
