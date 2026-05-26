@@ -26,16 +26,10 @@ export default async function Home() {
   const wixClient = getWixClient({ get: (name) => cookieStore.get(name)?.value })
 
   const activePlanKeys: string[] = []
-  let memberId: string | null = null
   if (wixClient.auth.loggedIn()) {
     try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const [{ orders: memberOrders }, { member }] = await Promise.all([
-        wixClient.orders.memberListOrders(),
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        wixClient.members.getCurrentMember({ fieldsets: ['FULL'] as any }),
-      ])
-      memberId = member?._id ?? null
+      const { orders: memberOrders } = await wixClient.orders.memberListOrders()
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const activeOrders = ((memberOrders ?? []) as any[]).filter((o) => o.status === 'ACTIVE')
       const monthlyId = process.env.NEXT_PUBLIC_WIX_PLAN_MONTHLY
@@ -49,27 +43,15 @@ export default async function Home() {
     }
   }
 
-  const isMonthlyMember = activePlanKeys.includes('monthly')
-
   const supabase = getSupabaseAdmin()
 
-  const [cmsProfiles, hasSubmitted] = await Promise.all([
-    Promise.resolve(
-      supabase
-        .from('athlete_profiles')
-        .select('*')
-        .eq('status', 'approved')
-        .order('created_at', { ascending: true })
-    ).then(({ data }) => (data ?? []) as AthleteProfile[]).catch(() => [] as AthleteProfile[]),
-    isMonthlyMember && memberId
-      ? Promise.resolve(
-          supabase
-            .from('athlete_profiles')
-            .select('id', { count: 'exact', head: true })
-            .eq('member_id', memberId)
-        ).then(({ count }) => (count ?? 0) > 0).catch(() => false)
-      : Promise.resolve(false),
-  ])
+  const cmsProfiles = await supabase
+    .from('athlete_profiles')
+    .select('*')
+    .eq('status', 'approved')
+    .order('created_at', { ascending: true })
+    .then(({ data }) => (data ?? []) as AthleteProfile[])
+    .catch(() => [] as AthleteProfile[])
 
   return (
     <>
@@ -118,7 +100,7 @@ export default async function Home() {
         </div>
 
         <MeetTheCoach />
-        <LeveeBreakers cmsProfiles={cmsProfiles} isMonthlyMember={isMonthlyMember} hasSubmitted={hasSubmitted} />
+        <LeveeBreakers cmsProfiles={cmsProfiles} />
         <Plans activePlanKeys={activePlanKeys} />
         <Footer />
       </div>

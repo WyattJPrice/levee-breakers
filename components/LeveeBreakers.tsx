@@ -1,6 +1,5 @@
 import Image from 'next/image'
 import styles from './LeveeBreakers.module.css'
-import AthleteSubmissionForm from './AthleteSubmissionForm'
 import type { AthleteProfile } from '@/lib/supabase'
 
 type Social = {
@@ -69,12 +68,8 @@ function SocialIcon({ platform }: { platform: Social['platform'] }) {
 
 export default function LeveeBreakers({
     cmsProfiles = [],
-    isMonthlyMember = false,
-    hasSubmitted = false,
 }: {
     cmsProfiles?: AthleteProfile[]
-    isMonthlyMember?: boolean
-    hasSubmitted?: boolean
 }) {
     return (
         <section className={styles.section}>
@@ -86,8 +81,6 @@ export default function LeveeBreakers({
                         <span className={styles.accent}> Levee Breakers</span>
                     </h2>
                 </div>
-
-                {isMonthlyMember && <AthleteSubmissionForm hasSubmitted={hasSubmitted} />}
 
                 <div className={styles.track}>
                     {[...cmsProfiles].sort((a, b) => calcMonths(b.months, b.created_at) - calcMonths(a.months, a.created_at)).map((profile) => {

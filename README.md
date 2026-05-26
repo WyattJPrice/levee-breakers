@@ -52,7 +52,7 @@ Auth redirects will break if the new domain isn't whitelisted.
 
 ### 4. Code — Update Hardcoded URLs
 - [ ] `app/layout.tsx` — `alternates.canonical`, `openGraph.url`, all OG image URLs
-- [ ] `app/LeveeBreakers/page.tsx` — `alternates.canonical`
+- [ ] `app/yourstory/page.tsx` — `alternates.canonical`
 
 ### 5. Supabase Webhook
 - [ ] Supabase dashboard → **Database → Webhooks → telegram-notify**
@@ -70,7 +70,7 @@ Auth redirects will break if the new domain isn't whitelisted.
 - [ ] Sign in / sign out flow completes (Wix auth redirect)
 - [ ] Plans page and checkout work
 - [ ] Monthly member sees "Share Your Story" button
-- [ ] `/LeveeBreakers` direct submission form submits
+- [ ] `/yourstory` direct submission form submits
 - [ ] Telegram receives notification with Approve/Reject buttons
 - [ ] Approve/Reject updates Supabase and edits the Telegram message
 - [ ] OG preview correct — paste URL into [opengraph.xyz](https://www.opengraph.xyz)

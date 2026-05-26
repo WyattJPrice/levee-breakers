@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { WIX_REFRESH_TOKEN_COOKIE } from '@/lib/wix'
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const refreshToken = request.cookies.get(WIX_REFRESH_TOKEN_COOKIE)
   const isLoggedIn = !!refreshToken?.value && refreshToken.value !== '{}'
 
