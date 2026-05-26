@@ -45,13 +45,13 @@ export default async function Home() {
 
   const supabase = getSupabaseAdmin()
 
-  const cmsProfiles = await supabase
-    .from('athlete_profiles')
-    .select('*')
-    .eq('status', 'approved')
-    .order('created_at', { ascending: true })
-    .then(({ data }) => (data ?? []) as AthleteProfile[])
-    .catch(() => [] as AthleteProfile[])
+  const cmsProfiles = await Promise.resolve(
+    supabase
+      .from('athlete_profiles')
+      .select('*')
+      .eq('status', 'approved')
+      .order('created_at', { ascending: true })
+  ).then(({ data }) => (data ?? []) as AthleteProfile[]).catch(() => [] as AthleteProfile[])
 
   return (
     <>
