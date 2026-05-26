@@ -7,10 +7,10 @@ import LeveeBreakers from '@/components/LeveeBreakers'
 import Footer from '@/components/Footer'
 import { getAuthState } from '@/lib/auth'
 import { getWixClient } from '@/lib/wix'
-import { getSupabaseAdmin, type AthleteProfile } from '@/lib/supabase'
+import { getSupabaseAdmin, type AthleteProfile, type CoachStat } from '@/lib/supabase'
 import { cookies } from 'next/headers'
 
-const STATS = [
+const FALLBACK_STATS = [
   { val: '1:49.3', label: '800m (2015)' },
   { val: '3:43.3', label: '1500m (2015)' },
   { val: '3:59.95', label: '1 Mile (2015)' },
@@ -45,13 +45,25 @@ export default async function Home() {
 
   const supabase = getSupabaseAdmin()
 
-  const cmsProfiles = await Promise.resolve(
-    supabase
-      .from('athlete_profiles')
-      .select('*')
-      .eq('status', 'approved')
-      .order('created_at', { ascending: true })
-  ).then(({ data }) => (data ?? []) as AthleteProfile[]).catch(() => [] as AthleteProfile[])
+  const [cmsProfiles, statsRows] = await Promise.all([
+    Promise.resolve(
+      supabase
+        .from('athlete_profiles')
+        .select('*')
+        .eq('status', 'approved')
+        .order('created_at', { ascending: true })
+    ).then(({ data }) => (data ?? []) as AthleteProfile[]).catch(() => [] as AthleteProfile[]),
+    Promise.resolve(
+      supabase
+        .from('coach_stats')
+        .select('*')
+        .order('sort_order', { ascending: true })
+    ).then(({ data }) => (data ?? []) as CoachStat[]).catch(() => [] as CoachStat[]),
+  ])
+
+  const STATS = statsRows.length > 0
+    ? statsRows.map((s) => ({ val: s.value, label: s.label }))
+    : FALLBACK_STATS
 
   return (
     <>

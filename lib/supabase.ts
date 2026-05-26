@@ -7,6 +7,13 @@ export function getSupabaseAdmin() {
   )
 }
 
+export type CoachStat = {
+  key: string
+  label: string
+  value: string
+  sort_order: number
+}
+
 export type AthleteProfile = {
   id: string
   created_at: string
