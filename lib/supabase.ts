@@ -11,6 +11,7 @@ export type CoachStat = {
   key: string
   label: string
   value: string
+  year: string | null
   sort_order: number
 }
 
