@@ -6,7 +6,8 @@
       "WebFetch(domain:raw.githubusercontent.com)",
       "WebFetch(domain:github.com)",
       "WebFetch(domain:api.github.com)",
-      "Bash(gh api:*)"
+      "Bash(gh api:*)",
+      "mcp__26ae3096-7cbb-4e7f-8eea-8ba29582e123__apply_migration"
     ]
   }
 }
