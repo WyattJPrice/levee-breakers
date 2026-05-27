@@ -154,10 +154,13 @@ async function handleMessage(message: any) {
           reply_markup: { force_reply: true, selective: true },
         })
       } else if (pending.step === 'awaiting_year') {
-        // Commit both value and year
+        // Derive new label: strip existing (YYYY) and append new year
+        const baseLabel = (stat?.label ?? pending.pr_key).replace(/\s*\(\d{4}\)\s*$/, '').trim()
+        const newLabel = `${baseLabel} (${text})`
+
         const { error } = await supabase
           .from('coach_stats')
-          .update({ value: pending.pending_value, year: text })
+          .update({ value: pending.pending_value, year: text, label: newLabel })
           .eq('key', pending.pr_key)
 
         await supabase.from('bot_pending').delete().eq('chat_id', chatId)
@@ -167,7 +170,7 @@ async function handleMessage(message: any) {
         } else {
           await tg('sendMessage', {
             chat_id: chatId,
-            text: `✅ Updated *${stat?.label ?? pending.pr_key}* to \`${pending.pending_value}\` (${text}) — live on site.`,
+            text: `✅ Updated *${newLabel}* to \`${pending.pending_value}\` — live on site.`,
             parse_mode: 'Markdown',
           })
         }
