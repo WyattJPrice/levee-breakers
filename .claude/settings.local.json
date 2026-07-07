@@ -6,7 +6,20 @@
       "WebFetch(domain:raw.githubusercontent.com)",
       "WebFetch(domain:github.com)",
       "WebFetch(domain:api.github.com)",
-      "Bash(gh api:*)"
+      "Bash(gh api:*)",
+      "mcp__claude_ai_Supabase__list_projects",
+      "mcp__claude_ai_Supabase__list_tables",
+      "mcp__claude_ai_Supabase__execute_sql",
+      "Bash(appwrite -v)",
+      "mcp__plugin_appwrite_appwrite-docs__search",
+      "mcp__plugin_appwrite_appwrite-docs__listFeatures",
+      "mcp__plugin_appwrite_appwrite-docs__getFeatureExamples",
+      "Bash(rm -f lib/supabase.ts app/api/supabase-webhook/route.ts)",
+      "Bash(rmdir app/api/supabase-webhook)",
+      "Bash(ls vercel.json)",
+      "mcp__plugin_appwrite_appwrite-api__appwrite_get_context",
+      "mcp__plugin_appwrite_appwrite-api__appwrite_search_tools",
+      "mcp__plugin_appwrite_appwrite-api__appwrite_call_tool"
     ]
   }
 }

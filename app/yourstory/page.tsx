@@ -4,7 +4,7 @@ import DirectAthleteSubmissionForm from '@/components/DirectAthleteSubmissionFor
 import Nav from '@/components/Nav'
 import type { Metadata } from 'next'
 import { getAuthState } from '@/lib/auth'
-import { getSupabaseAdmin, type AthleteProfile } from '@/lib/supabase'
+import { getAppwrite, rowToProfile, DATABASE_ID, TABLE_PROFILES, type AthleteProfile } from '@/lib/appwrite'
 
 export const metadata: Metadata = {
   robots: 'noindex',
@@ -19,13 +19,17 @@ export default async function YourStory() {
 
   let existingProfile: AthleteProfile | null = null
   if (submissionId) {
-    const supabase = getSupabaseAdmin()
-    const { data } = await supabase
-      .from('athlete_profiles')
-      .select('*')
-      .eq('id', submissionId)
-      .single()
-    existingProfile = data ?? null
+    const { tablesDB } = getAppwrite()
+    try {
+      const row = await tablesDB.getRow({
+        databaseId: DATABASE_ID,
+        tableId: TABLE_PROFILES,
+        rowId: submissionId,
+      })
+      existingProfile = rowToProfile(row)
+    } catch {
+      existingProfile = null
+    }
   }
 
   return (

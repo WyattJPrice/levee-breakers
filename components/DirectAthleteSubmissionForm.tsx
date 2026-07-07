@@ -2,7 +2,7 @@
 
 import { useState, useRef } from 'react'
 import styles from './AthleteSubmissionForm.module.css'
-import type { AthleteProfile } from '@/lib/supabase'
+import type { AthleteProfile } from '@/lib/appwrite'
 
 type Mode = 'create' | 'view' | 'editing' | 'done' | 'deleted'
 

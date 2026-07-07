@@ -9,7 +9,7 @@ New Orleans distance running coaching site — dark/light theme, built with Next
 - **CSS Modules** — component-scoped styles
 - **CSS Variables** — theming (`data-theme="dark"` / `data-theme="light"`)
 - **Wix Headless** — auth, memberships, pricing plans
-- **Supabase** — athlete profile submissions + photo storage
+- **Appwrite** — athlete profile submissions (TablesDB) + photo storage
 - **Telegram Bot** — coach approval notifications
 - **Bebas Neue + Syne + DM Mono** via Google Fonts
 
@@ -54,9 +54,10 @@ Auth redirects will break if the new domain isn't whitelisted.
 - [ ] `app/layout.tsx` — `alternates.canonical`, `openGraph.url`, all OG image URLs
 - [ ] `app/yourstory/page.tsx` — `alternates.canonical`
 
-### 5. Supabase Webhook
-- [ ] Supabase dashboard → **Database → Webhooks → telegram-notify**
-- [ ] Update HTTP request URL to `https://leveebreakers.com/api/supabase-webhook`
+### 5. Telegram Submission Notification
+- New pending submissions now fire the Telegram approve/reject message **inline** from the
+  submission API routes (`lib/telegram.ts` → `notifyNewSubmission`). There is no database
+  webhook to configure — this replaced the former Supabase Database Webhook.
 
 ### 6. Telegram Webhook
 - [ ] Re-register via browser or curl:
@@ -72,7 +73,7 @@ Auth redirects will break if the new domain isn't whitelisted.
 - [ ] Monthly member sees "Share Your Story" button
 - [ ] `/yourstory` direct submission form submits
 - [ ] Telegram receives notification with Approve/Reject buttons
-- [ ] Approve/Reject updates Supabase and edits the Telegram message
+- [ ] Approve/Reject updates Appwrite and edits the Telegram message
 - [ ] OG preview correct — paste URL into [opengraph.xyz](https://www.opengraph.xyz)
 - [ ] 404 page renders with nav
 
@@ -87,8 +88,21 @@ Auth redirects will break if the new domain isn't whitelisted.
 | `NEXT_PUBLIC_WIX_PLAN_MONTHLY` | Vercel + `.env.local` | Wix pricing plan ID |
 | `NEXT_PUBLIC_WIX_PLAN_CONSULTATION` | Vercel + `.env.local` | Wix pricing plan ID |
 | `WIX_API_KEY` | Vercel only | Server-side Wix API key |
-| `SUPABASE_URL` | Vercel + `.env.local` | Supabase project URL |
-| `SUPABASE_SERVICE_ROLE_KEY` | Vercel only | Never expose to browser |
+| `APPWRITE_ENDPOINT` | Vercel + `.env.local` | Region endpoint, e.g. `https://nyc.cloud.appwrite.io/v1` |
+| `APPWRITE_PROJECT_ID` | Vercel + `.env.local` | Appwrite project ID |
+| `APPWRITE_API_KEY` | Vercel only | Server key (databases + storage scopes). Never expose to browser |
+| `CRON_SECRET` | Vercel only | Optional — protects `/api/keep-alive` from public calls |
 | `TELEGRAM_BOT_TOKEN` | Vercel + `.env.local` | From @BotFather |
 | `TELEGRAM_CHAT_ID` | Vercel + `.env.local` | Comma-separated for multiple recipients |
-| `WEBHOOK_SECRET` | Vercel + `.env.local` | Shared secret for Supabase webhook header |
+
+## Appwrite
+
+Data lives in one Appwrite database (`main`) with three tables — `athlete_profiles`,
+`coach_stats`, `bot_pending` — plus a public-read `athlete-photos` storage bucket.
+
+- **Provision schema:** `npm run appwrite:setup` (idempotent)
+- **Migrate data from Supabase:** `npm run appwrite:migrate` (idempotent; re-uploads photos)
+- **Keep-alive:** a daily Vercel Cron (`vercel.json`) hits `/api/keep-alive`, doing a tiny
+  Appwrite read so the Free-plan project never hibernates from inactivity.
+
+Both scripts read credentials from `.env.local` (`APPWRITE_*`, and for migration `SUPABASE_*`).

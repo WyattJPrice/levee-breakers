@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getSupabaseAdmin } from '@/lib/supabase'
+import { ID, Permission, Role } from 'node-appwrite'
+import { InputFile } from 'node-appwrite/file'
+import { getAppwrite, filePublicUrl, rowToProfile, DATABASE_ID, TABLE_PROFILES, BUCKET_PHOTOS } from '@/lib/appwrite'
+import { notifyLines, notifyNewSubmission } from '@/lib/telegram'
 import { isRateLimited } from '@/lib/rateLimit'
 
 const SUBMITTED_COOKIE = 'lb_submitted'
@@ -8,21 +11,6 @@ const COOKIE_MAX_AGE = 60 * 60 * 24 * 365
 
 function cookieOpts(maxAge: number) {
   return { httpOnly: true, maxAge, path: '/', sameSite: 'lax' as const }
-}
-
-async function notifyTelegram(lines: string[]) {
-  const chatIds = (process.env.TELEGRAM_CHAT_ID ?? '').split(',').map((s) => s.trim()).filter(Boolean)
-  const token = process.env.TELEGRAM_BOT_TOKEN
-  if (!token || chatIds.length === 0) return
-  await Promise.all(
-    chatIds.map((chat_id) =>
-      fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ chat_id, text: lines.join('\n'), parse_mode: 'Markdown' }),
-      }).catch(() => {})
-    )
-  )
 }
 
 export async function POST(req: NextRequest) {
@@ -50,34 +38,62 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
   }
 
-  const supabase = getSupabaseAdmin()
+  const { tablesDB, storage } = getAppwrite()
 
   let photoUrl: string | null = null
   if (photo && photo.size > 0) {
-    const ext = photo.name.split('.').pop() ?? 'jpg'
-    const path = `direct-${Date.now()}.${ext}`
-    const arrayBuffer = await photo.arrayBuffer()
-    const { data, error } = await supabase.storage
-      .from('athlete-photos')
-      .upload(path, Buffer.from(arrayBuffer), { contentType: photo.type, upsert: true })
-    if (error) return NextResponse.json({ error: 'Photo upload failed' }, { status: 500 })
-    photoUrl = supabase.storage.from('athlete-photos').getPublicUrl(data.path).data.publicUrl
+    try {
+      const arrayBuffer = await photo.arrayBuffer()
+      const file = await storage.createFile({
+        bucketId: BUCKET_PHOTOS,
+        fileId: ID.unique(),
+        file: InputFile.fromBuffer(Buffer.from(arrayBuffer), photo.name || 'photo.jpg'),
+        permissions: [Permission.read(Role.any())],
+      })
+      photoUrl = filePublicUrl(file.$id)
+    } catch (err) {
+      console.error('Appwrite photo upload error:', err)
+      return NextResponse.json({ error: 'Photo upload failed' }, { status: 500 })
+    }
   }
 
-  const { data: inserted, error: dbError } = await supabase
-    .from('athlete_profiles')
-    .insert({ name, photo_url: photoUrl, testimonial, months, instagram_url: instagram, strava_url: strava, status: 'pending', member_id: 'direct' })
-    .select('id')
-    .single()
-
-  if (dbError || !inserted) {
-    console.error('Supabase insert error:', dbError)
+  let insertedId: string
+  try {
+    const row = await tablesDB.createRow({
+      databaseId: DATABASE_ID,
+      tableId: TABLE_PROFILES,
+      rowId: ID.unique(),
+      data: {
+        name,
+        photo_url: photoUrl,
+        testimonial,
+        months,
+        instagram_url: instagram,
+        strava_url: strava,
+        status: 'pending',
+        member_id: 'direct',
+        created_at: new Date().toISOString(),
+      },
+    })
+    insertedId = row.$id
+  } catch (err) {
+    console.error('Appwrite insert error:', err)
     return NextResponse.json({ error: 'Submission failed' }, { status: 500 })
   }
 
+  await notifyNewSubmission({
+    id: insertedId,
+    name,
+    months,
+    testimonial,
+    instagram_url: instagram,
+    strava_url: strava,
+    photo_url: photoUrl,
+  })
+
   const res = NextResponse.json({ success: true })
   res.cookies.set(SUBMITTED_COOKIE, '1', cookieOpts(COOKIE_MAX_AGE))
-  res.cookies.set(SUBMISSION_ID_COOKIE, inserted.id, cookieOpts(COOKIE_MAX_AGE))
+  res.cookies.set(SUBMISSION_ID_COOKIE, insertedId, cookieOpts(COOKIE_MAX_AGE))
   return res
 }
 
@@ -97,39 +113,59 @@ export async function PUT(req: NextRequest) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
   }
 
-  const supabase = getSupabaseAdmin()
+  const { tablesDB, storage } = getAppwrite()
 
-  const { data: existing } = await supabase
-    .from('athlete_profiles')
-    .select('photo_url')
-    .eq('id', submissionId)
-    .single()
-
-  let photoUrl: string | null = existing?.photo_url ?? null
-  if (photo && photo.size > 0) {
-    const ext = photo.name.split('.').pop() ?? 'jpg'
-    const path = `direct-${submissionId}-${Date.now()}.${ext}`
-    const arrayBuffer = await photo.arrayBuffer()
-    const { data, error } = await supabase.storage
-      .from('athlete-photos')
-      .upload(path, Buffer.from(arrayBuffer), { contentType: photo.type, upsert: true })
-    if (error) return NextResponse.json({ error: 'Photo upload failed' }, { status: 500 })
-    photoUrl = supabase.storage.from('athlete-photos').getPublicUrl(data.path).data.publicUrl
+  let photoUrl: string | null = null
+  try {
+    const existing = await tablesDB.getRow({
+      databaseId: DATABASE_ID,
+      tableId: TABLE_PROFILES,
+      rowId: submissionId,
+    })
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    photoUrl = (existing as any).photo_url ?? null
+  } catch {
+    // row may not exist; treated as no prior photo
   }
 
-  const { data: updated, error: dbError } = await supabase
-    .from('athlete_profiles')
-    .update({ name, photo_url: photoUrl, testimonial, months, instagram_url: instagram, strava_url: strava, status: 'approved' })
-    .eq('id', submissionId)
-    .select('*')
-    .single()
+  if (photo && photo.size > 0) {
+    try {
+      const arrayBuffer = await photo.arrayBuffer()
+      const file = await storage.createFile({
+        bucketId: BUCKET_PHOTOS,
+        fileId: ID.unique(),
+        file: InputFile.fromBuffer(Buffer.from(arrayBuffer), photo.name || 'photo.jpg'),
+        permissions: [Permission.read(Role.any())],
+      })
+      photoUrl = filePublicUrl(file.$id)
+    } catch (err) {
+      console.error('Appwrite photo upload error:', err)
+      return NextResponse.json({ error: 'Photo upload failed' }, { status: 500 })
+    }
+  }
 
-  if (dbError || !updated) {
-    console.error('Supabase update error:', dbError)
+  let updated
+  try {
+    updated = await tablesDB.updateRow({
+      databaseId: DATABASE_ID,
+      tableId: TABLE_PROFILES,
+      rowId: submissionId,
+      data: {
+        name,
+        photo_url: photoUrl,
+        testimonial,
+        months,
+        instagram_url: instagram,
+        strava_url: strava,
+        status: 'approved',
+      },
+    })
+  } catch (err) {
+    console.error('Appwrite update error:', err)
     return NextResponse.json({ error: 'Update failed' }, { status: 500 })
   }
 
-  await notifyTelegram([
+  await notifyLines([
     `✏️ *Profile Updated — Now Live*`,
     `*Name:* ${name}`,
     `*Months with coach:* ${months}`,
@@ -137,18 +173,22 @@ export async function PUT(req: NextRequest) {
     ...(photoUrl ? [`[View Photo](${photoUrl})`] : []),
   ])
 
-  return NextResponse.json({ success: true, profile: updated })
+  return NextResponse.json({ success: true, profile: rowToProfile(updated) })
 }
 
 export async function DELETE(req: NextRequest) {
   const submissionId = req.cookies.get(SUBMISSION_ID_COOKIE)?.value
   if (!submissionId) return NextResponse.json({ error: 'No submission found' }, { status: 404 })
 
-  const supabase = getSupabaseAdmin()
-  const { error } = await supabase.from('athlete_profiles').delete().eq('id', submissionId)
-
-  if (error) {
-    console.error('Supabase delete error:', error)
+  const { tablesDB } = getAppwrite()
+  try {
+    await tablesDB.deleteRow({
+      databaseId: DATABASE_ID,
+      tableId: TABLE_PROFILES,
+      rowId: submissionId,
+    })
+  } catch (err) {
+    console.error('Appwrite delete error:', err)
     return NextResponse.json({ error: 'Delete failed' }, { status: 500 })
   }
 

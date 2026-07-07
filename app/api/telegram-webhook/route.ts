@@ -1,33 +1,35 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getSupabaseAdmin } from '@/lib/supabase'
-
-const TOKEN = process.env.TELEGRAM_BOT_TOKEN ?? ''
+import { Query } from 'node-appwrite'
+import { getAppwrite, DATABASE_ID, TABLE_PROFILES, TABLE_STATS, TABLE_BOT_PENDING } from '@/lib/appwrite'
+import { tg } from '@/lib/telegram'
 
 function isAuthorized(chatId: number | string): boolean {
   const allowed = (process.env.TELEGRAM_CHAT_ID ?? '').split(',').map((s) => s.trim()).filter(Boolean)
   return allowed.includes(String(chatId))
 }
 
-async function tg(method: string, body: object) {
-  return fetch(`https://api.telegram.org/bot${TOKEN}/${method}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  })
+// getRow that resolves to null instead of throwing on 404.
+async function getRowOrNull(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  tablesDB: any,
+  tableId: string,
+  rowId: string
+) {
+  try {
+    return await tablesDB.getRow({ databaseId: DATABASE_ID, tableId, rowId })
+  } catch {
+    return null
+  }
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function handleCallbackQuery(query: any) {
   const [action, id] = (query.data as string).split(':')
-  const supabase = getSupabaseAdmin()
+  const { tablesDB } = getAppwrite()
 
   // ── Athlete approve / reject ──────────────────────────────────────────────
   if (action === 'approve' || action === 'reject') {
-    const { data: existing } = await supabase
-      .from('athlete_profiles')
-      .select('status')
-      .eq('id', id)
-      .single()
+    const existing = await getRowOrNull(tablesDB, TABLE_PROFILES, id)
 
     if (existing && existing.status !== 'pending') {
       const already = existing.status === 'approved' ? '✅ Already approved' : '❌ Already rejected'
@@ -36,8 +38,11 @@ async function handleCallbackQuery(query: any) {
     }
 
     const status = action === 'approve' ? 'approved' : 'rejected'
-    const { error } = await supabase.from('athlete_profiles').update({ status }).eq('id', id)
-    if (error) console.error('Supabase update error:', error)
+    try {
+      await tablesDB.updateRow({ databaseId: DATABASE_ID, tableId: TABLE_PROFILES, rowId: id, data: { status } })
+    } catch (err) {
+      console.error('Appwrite update error:', err)
+    }
 
     const chatId = query.message.chat.id
     const messageId = query.message.message_id
@@ -61,9 +66,15 @@ async function handleCallbackQuery(query: any) {
   if (action === 'update_pr') {
     const chatId = query.message.chat.id
 
-    await supabase.from('bot_pending').upsert({ chat_id: chatId, pr_key: id, created_at: new Date().toISOString() })
+    // Upsert bot_pending keyed by chat id.
+    await tablesDB.upsertRow({
+      databaseId: DATABASE_ID,
+      tableId: TABLE_BOT_PENDING,
+      rowId: String(chatId),
+      data: { chat_id: String(chatId), pr_key: id, step: 'awaiting_value', created_at: new Date().toISOString() },
+    })
 
-    const { data: stat } = await supabase.from('coach_stats').select('label, value').eq('key', id).single()
+    const stat = await getRowOrNull(tablesDB, TABLE_STATS, id)
 
     await Promise.all([
       tg('answerCallbackQuery', { callback_query_id: query.id }),
@@ -89,11 +100,12 @@ async function handleMessage(message: any) {
 
   // ── /PRupdate command ─────────────────────────────────────────────────────
   if (text.toLowerCase().startsWith('/prupdate')) {
-    const supabase = getSupabaseAdmin()
-    const { data: stats } = await supabase
-      .from('coach_stats')
-      .select('*')
-      .order('sort_order', { ascending: true })
+    const { tablesDB } = getAppwrite()
+    const { rows: stats } = await tablesDB.listRows({
+      databaseId: DATABASE_ID,
+      tableId: TABLE_STATS,
+      queries: [Query.orderAsc('sort_order'), Query.limit(100)],
+    })
 
     if (!stats || stats.length === 0) {
       await tg('sendMessage', { chat_id: chatId, text: 'No stats found in database.' })
@@ -102,9 +114,9 @@ async function handleMessage(message: any) {
 
     const rows: { text: string; callback_data: string }[][] = []
     for (let i = 0; i < stats.length; i += 2) {
-      const row = [{ text: `${stats[i].label}: ${stats[i].value}`, callback_data: `update_pr:${stats[i].key}` }]
+      const row = [{ text: `${stats[i].label}: ${stats[i].value}`, callback_data: `update_pr:${stats[i].$id}` }]
       if (stats[i + 1]) {
-        row.push({ text: `${stats[i + 1].label}: ${stats[i + 1].value}`, callback_data: `update_pr:${stats[i + 1].key}` })
+        row.push({ text: `${stats[i + 1].label}: ${stats[i + 1].value}`, callback_data: `update_pr:${stats[i + 1].$id}` })
       }
       rows.push(row)
     }
@@ -120,28 +132,32 @@ async function handleMessage(message: any) {
 
   // ── Pending PR value input ────────────────────────────────────────────────
   if (!text.startsWith('/')) {
-    const supabase = getSupabaseAdmin()
-    const { data: pending } = await supabase
-      .from('bot_pending')
-      .select('pr_key')
-      .eq('chat_id', chatId)
-      .single()
+    const { tablesDB } = getAppwrite()
+    const pending = await getRowOrNull(tablesDB, TABLE_BOT_PENDING, String(chatId))
 
     if (pending) {
-      const { data: stat } = await supabase
-        .from('coach_stats')
-        .select('label')
-        .eq('key', pending.pr_key)
-        .single()
+      const stat = await getRowOrNull(tablesDB, TABLE_STATS, pending.pr_key)
 
-      const { error } = await supabase
-        .from('coach_stats')
-        .update({ value: text })
-        .eq('key', pending.pr_key)
+      let updateError = false
+      try {
+        await tablesDB.updateRow({
+          databaseId: DATABASE_ID,
+          tableId: TABLE_STATS,
+          rowId: pending.pr_key,
+          data: { value: text },
+        })
+      } catch (err) {
+        console.error('Appwrite stat update error:', err)
+        updateError = true
+      }
 
-      await supabase.from('bot_pending').delete().eq('chat_id', chatId)
+      try {
+        await tablesDB.deleteRow({ databaseId: DATABASE_ID, tableId: TABLE_BOT_PENDING, rowId: String(chatId) })
+      } catch {
+        // ignore
+      }
 
-      if (error) {
+      if (updateError) {
         await tg('sendMessage', { chat_id: chatId, text: '❌ Failed to update stat.' })
       } else {
         await tg('sendMessage', {

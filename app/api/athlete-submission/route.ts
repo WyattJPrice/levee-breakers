@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { ID, Permission, Role } from 'node-appwrite'
+import { InputFile } from 'node-appwrite/file'
 import { getWixClient } from '@/lib/wix'
-import { getSupabaseAdmin } from '@/lib/supabase'
+import { getAppwrite, filePublicUrl, DATABASE_ID, TABLE_PROFILES, BUCKET_PHOTOS } from '@/lib/appwrite'
+import { notifyNewSubmission } from '@/lib/telegram'
 
 export async function POST(req: NextRequest) {
   const wixClient = getWixClient({ get: (name) => req.cookies.get(name)?.value })
@@ -46,37 +49,58 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
   }
 
-  const supabase = getSupabaseAdmin()
+  const { tablesDB, storage } = getAppwrite()
 
   let photoUrl: string | null = null
   if (photo && photo.size > 0) {
-    const ext = photo.name.split('.').pop() ?? 'jpg'
-    const path = `${memberId}-${Date.now()}.${ext}`
-    const arrayBuffer = await photo.arrayBuffer()
-    const { data, error } = await supabase.storage
-      .from('athlete-photos')
-      .upload(path, Buffer.from(arrayBuffer), { contentType: photo.type, upsert: true })
-    if (error) {
+    try {
+      const arrayBuffer = await photo.arrayBuffer()
+      const file = await storage.createFile({
+        bucketId: BUCKET_PHOTOS,
+        fileId: ID.unique(),
+        file: InputFile.fromBuffer(Buffer.from(arrayBuffer), photo.name || 'photo.jpg'),
+        permissions: [Permission.read(Role.any())],
+      })
+      photoUrl = filePublicUrl(file.$id)
+    } catch (err) {
+      console.error('Appwrite photo upload error:', err)
       return NextResponse.json({ error: 'Photo upload failed' }, { status: 500 })
     }
-    photoUrl = supabase.storage.from('athlete-photos').getPublicUrl(data.path).data.publicUrl
   }
 
-  const { error: dbError } = await supabase.from('athlete_profiles').insert({
-    name,
-    photo_url: photoUrl,
-    testimonial,
-    months,
-    instagram_url: instagram,
-    strava_url: strava,
-    status: 'pending',
-    member_id: memberId,
-  })
-
-  if (dbError) {
-    console.error('Supabase insert error:', dbError)
+  let insertedId: string
+  try {
+    const row = await tablesDB.createRow({
+      databaseId: DATABASE_ID,
+      tableId: TABLE_PROFILES,
+      rowId: ID.unique(),
+      data: {
+        name,
+        photo_url: photoUrl,
+        testimonial,
+        months,
+        instagram_url: instagram,
+        strava_url: strava,
+        status: 'pending',
+        member_id: memberId,
+        created_at: new Date().toISOString(),
+      },
+    })
+    insertedId = row.$id
+  } catch (err) {
+    console.error('Appwrite insert error:', err)
     return NextResponse.json({ error: 'Submission failed' }, { status: 500 })
   }
+
+  await notifyNewSubmission({
+    id: insertedId,
+    name,
+    months,
+    testimonial,
+    instagram_url: instagram,
+    strava_url: strava,
+    photo_url: photoUrl,
+  })
 
   return NextResponse.json({ success: true })
 }

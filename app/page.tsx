@@ -7,7 +7,8 @@ import LeveeBreakers from '@/components/LeveeBreakers'
 import Footer from '@/components/Footer'
 import { getAuthState } from '@/lib/auth'
 import { getWixClient } from '@/lib/wix'
-import { getSupabaseAdmin, type AthleteProfile, type CoachStat } from '@/lib/supabase'
+import { Query } from 'node-appwrite'
+import { getAppwrite, rowToProfile, rowToStat, DATABASE_ID, TABLE_PROFILES, TABLE_STATS, type AthleteProfile, type CoachStat } from '@/lib/appwrite'
 import { cookies } from 'next/headers'
 
 const FALLBACK_STATS = [
@@ -43,22 +44,25 @@ export default async function Home() {
     }
   }
 
-  const supabase = getSupabaseAdmin()
+  const { tablesDB } = getAppwrite()
 
   const [cmsProfiles, statsRows] = await Promise.all([
-    Promise.resolve(
-      supabase
-        .from('athlete_profiles')
-        .select('*')
-        .eq('status', 'approved')
-        .order('created_at', { ascending: true })
-    ).then(({ data }) => (data ?? []) as AthleteProfile[]).catch(() => [] as AthleteProfile[]),
-    Promise.resolve(
-      supabase
-        .from('coach_stats')
-        .select('*')
-        .order('sort_order', { ascending: true })
-    ).then(({ data }) => (data ?? []) as CoachStat[]).catch(() => [] as CoachStat[]),
+    tablesDB
+      .listRows({
+        databaseId: DATABASE_ID,
+        tableId: TABLE_PROFILES,
+        queries: [Query.equal('status', 'approved'), Query.orderAsc('created_at'), Query.limit(100)],
+      })
+      .then((r) => r.rows.map(rowToProfile))
+      .catch(() => [] as AthleteProfile[]),
+    tablesDB
+      .listRows({
+        databaseId: DATABASE_ID,
+        tableId: TABLE_STATS,
+        queries: [Query.orderAsc('sort_order'), Query.limit(100)],
+      })
+      .then((r) => r.rows.map(rowToStat))
+      .catch(() => [] as CoachStat[]),
   ])
 
   const STATS = statsRows.length > 0

@@ -1,6 +1,6 @@
 import Image from 'next/image'
 import styles from './LeveeBreakers.module.css'
-import type { AthleteProfile } from '@/lib/supabase'
+import type { AthleteProfile } from '@/lib/appwrite'
 
 type Social = {
     platform: 'instagram' | 'strava' | 'facebook' | 'twitter'
