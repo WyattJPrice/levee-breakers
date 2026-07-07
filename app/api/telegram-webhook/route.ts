@@ -71,16 +71,17 @@ async function handleCallbackQuery(query: any) {
       databaseId: DATABASE_ID,
       tableId: TABLE_BOT_PENDING,
       rowId: String(chatId),
-      data: { chat_id: String(chatId), pr_key: id, step: 'awaiting_value', created_at: new Date().toISOString() },
+      data: { chat_id: String(chatId), pr_key: id, step: 'awaiting_value', pending_value: null, created_at: new Date().toISOString() },
     })
 
     const stat = await getRowOrNull(tablesDB, TABLE_STATS, id)
+    const currentDisplay = stat?.year ? `${stat.value} (${stat.year})` : (stat?.value ?? '?')
 
     await Promise.all([
       tg('answerCallbackQuery', { callback_query_id: query.id }),
       tg('sendMessage', {
         chat_id: chatId,
-        text: `Enter new value for *${stat?.label ?? id}* (current: \`${stat?.value ?? '?'}\`):`,
+        text: `Enter new value for *${stat?.label ?? id}* (current: \`${currentDisplay}\`):`,
         parse_mode: 'Markdown',
         reply_markup: { force_reply: true, selective: true },
       }),
@@ -112,11 +113,15 @@ async function handleMessage(message: any) {
       return NextResponse.json({ ok: true })
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const statLabel = (s: any) =>
+      s.year ? `${s.label}: ${s.value} (${s.year})` : `${s.label}: ${s.value}`
+
     const rows: { text: string; callback_data: string }[][] = []
     for (let i = 0; i < stats.length; i += 2) {
-      const row = [{ text: `${stats[i].label}: ${stats[i].value}`, callback_data: `update_pr:${stats[i].$id}` }]
+      const row = [{ text: statLabel(stats[i]), callback_data: `update_pr:${stats[i].$id}` }]
       if (stats[i + 1]) {
-        row.push({ text: `${stats[i + 1].label}: ${stats[i + 1].value}`, callback_data: `update_pr:${stats[i + 1].$id}` })
+        row.push({ text: statLabel(stats[i + 1]), callback_data: `update_pr:${stats[i + 1].$id}` })
       }
       rows.push(row)
     }
@@ -130,7 +135,7 @@ async function handleMessage(message: any) {
     return NextResponse.json({ ok: true })
   }
 
-  // ── Pending PR value input ────────────────────────────────────────────────
+  // ── Pending PR value / year input ────────────────────────────────────────
   if (!text.startsWith('/')) {
     const { tablesDB } = getAppwrite()
     const pending = await getRowOrNull(tablesDB, TABLE_BOT_PENDING, String(chatId))
@@ -138,33 +143,57 @@ async function handleMessage(message: any) {
     if (pending) {
       const stat = await getRowOrNull(tablesDB, TABLE_STATS, pending.pr_key)
 
-      let updateError = false
-      try {
-        await tablesDB.updateRow({
-          databaseId: DATABASE_ID,
-          tableId: TABLE_STATS,
-          rowId: pending.pr_key,
-          data: { value: text },
-        })
-      } catch (err) {
-        console.error('Appwrite stat update error:', err)
-        updateError = true
-      }
-
-      try {
-        await tablesDB.deleteRow({ databaseId: DATABASE_ID, tableId: TABLE_BOT_PENDING, rowId: String(chatId) })
-      } catch {
-        // ignore
-      }
-
-      if (updateError) {
-        await tg('sendMessage', { chat_id: chatId, text: '❌ Failed to update stat.' })
-      } else {
+      if (pending.step === 'awaiting_value') {
+        // Store the value and ask for the year
+        try {
+          await tablesDB.updateRow({
+            databaseId: DATABASE_ID,
+            tableId: TABLE_BOT_PENDING,
+            rowId: String(chatId),
+            data: { pending_value: text, step: 'awaiting_year' },
+          })
+        } catch (err) {
+          console.error('Appwrite bot_pending update error:', err)
+        }
         await tg('sendMessage', {
           chat_id: chatId,
-          text: `✅ Updated *${stat?.label ?? pending.pr_key}* to \`${text}\` — live on site.`,
+          text: `Got it. Now enter the *year* this PR was set:`,
           parse_mode: 'Markdown',
+          reply_markup: { force_reply: true, selective: true },
         })
+      } else if (pending.step === 'awaiting_year') {
+        // Derive new label: strip existing (YYYY) and append new year
+        const baseLabel = (stat?.label ?? pending.pr_key).replace(/\s*\(\d{4}\)\s*$/, '').trim()
+        const newLabel = `${baseLabel} (${text})`
+
+        let updateError = false
+        try {
+          await tablesDB.updateRow({
+            databaseId: DATABASE_ID,
+            tableId: TABLE_STATS,
+            rowId: pending.pr_key,
+            data: { value: pending.pending_value, year: text, label: newLabel },
+          })
+        } catch (err) {
+          console.error('Appwrite stat update error:', err)
+          updateError = true
+        }
+
+        try {
+          await tablesDB.deleteRow({ databaseId: DATABASE_ID, tableId: TABLE_BOT_PENDING, rowId: String(chatId) })
+        } catch {
+          // ignore
+        }
+
+        if (updateError) {
+          await tg('sendMessage', { chat_id: chatId, text: '❌ Failed to update stat.' })
+        } else {
+          await tg('sendMessage', {
+            chat_id: chatId,
+            text: `✅ Updated *${newLabel}* to \`${pending.pending_value}\` — live on site.`,
+            parse_mode: 'Markdown',
+          })
+        }
       }
     }
   }

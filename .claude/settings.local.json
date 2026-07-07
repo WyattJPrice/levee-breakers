@@ -19,7 +19,8 @@
       "Bash(ls vercel.json)",
       "mcp__plugin_appwrite_appwrite-api__appwrite_get_context",
       "mcp__plugin_appwrite_appwrite-api__appwrite_search_tools",
-      "mcp__plugin_appwrite_appwrite-api__appwrite_call_tool"
+      "mcp__plugin_appwrite_appwrite-api__appwrite_call_tool",
+      "mcp__26ae3096-7cbb-4e7f-8eea-8ba29582e123__apply_migration"
     ]
   }
 }
